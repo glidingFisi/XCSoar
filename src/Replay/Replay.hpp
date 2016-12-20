@@ -28,12 +28,26 @@ Copyright_License {
 #include "NMEA/Info.hpp"
 #include "Time/PeriodClock.hpp"
 #include "OS/Path.hpp"
+#include <list>
 
 class Logger;
 class ProtectedTaskManager;
 class AbstractReplay;
 class CatmullRomInterpolator;
 class Error;
+
+class ReplayItem
+{
+public:
+  AllocatedPath path;
+  AbstractReplay *replay;
+  NMEAInfo next_data;
+  StaticString<32> name;
+
+  ReplayItem(Path _path)
+    :path(_path), replay(nullptr) {
+  }
+};
 
 class Replay final
   : private Timer
@@ -46,6 +60,20 @@ class Replay final
   ProtectedTaskManager &task_manager;
 
   AllocatedPath path = nullptr;
+  
+  std::vector<ReplayItem*> itemList;
+
+  struct ListItem {
+    Path path;
+    AbstractReplay *replay;
+    NMEAInfo next_data;
+    char name[20];
+
+   /* ListItem(const Path _path)
+      : path(_path) {}*/
+  };
+
+  std::vector<ListItem> list;
 
   /**
    * The time of day according to replay input.  This is negative if
@@ -99,6 +127,25 @@ public:
    * Throws std::runtime_errror on error.
    */
   void Start(Path _path);
+
+  //bool AddTrafficPath(std::list<Path> _path_list);
+  bool AddTrafficPath(Path _path);
+  void ClearTraffic();
+  unsigned int GetTrafficCount(){
+    return  itemList.size();
+  }
+  GeoPoint GetTrafficItem(unsigned int item){
+    return itemList[item]->next_data.location;
+  }
+  int GetAltitudeItem(unsigned int item){
+    return itemList[item]->next_data.gps_altitude;
+  }
+  int GetTimeItem(unsigned int item){
+    return /*list[item].next_data.time*/ 0;
+  }
+  const TCHAR * GetNameItem(unsigned int item){
+    return itemList[item]->name;
+  }
 
   Path GetFilename() const {
     return path;

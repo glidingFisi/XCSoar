@@ -30,8 +30,16 @@ Copyright_License {
 #include "Time/BrokenTime.hpp"
 #include "Util/CharUtil.hpp"
 #include "Util/StringAPI.hxx"
+#include "IO/FileLineReader.hpp"
 
 #include <stdlib.h>
+
+#define IGC_META_DATE       "HFDTE"
+#define IGC_META_PILOT      "HFPLTPILOT:"
+#define IGC_META_GLIDER     "HFGTYGLIDERTYPE:"
+#define IGC_META_REGISTRATION     "HFGIDGLIDERID:"
+#define IGC_META_COMPETITION_ID   "HFCIDCOMPETITIONID:"
+#define IGC_META_COMPETITION_CLASS  "HFCCLCOMPETITIONCLASS:"
 
 /**
  * Character table for base-36.
@@ -48,6 +56,44 @@ ImportDeprecatedLoggerSerial(char id[4], unsigned serial)
   id[1] = c36[(serial / 36) % 36];
   id[2] = c36[serial % 36];
   id[3] = 0;
+}
+
+bool IGCParseFromFilePath(Path path, struct igcMetaData *data ){
+  if(NULL == data){
+    return false;    
+  }
+  
+  FileLineReaderA reader(path);
+
+    char *line;
+  while(NULL !=  (line = reader.ReadLine())){
+    if (memcmp(line, IGC_META_DATE, strlen(IGC_META_DATE)) == 0){
+      IGCParseDateRecord(line, data->date);
+    }
+    if (memcmp(line, IGC_META_PILOT, strlen(IGC_META_PILOT)) == 0){
+  
+    }
+    if (memcmp(line, IGC_META_GLIDER, strlen(IGC_META_GLIDER)) == 0){
+  
+    }
+    if (memcmp(line, IGC_META_REGISTRATION, strlen(IGC_META_REGISTRATION)) == 0){
+      IGCParseGliderIdRecord(line, data->registration, 20);
+    }
+    if (memcmp(line, IGC_META_COMPETITION_ID, strlen(IGC_META_COMPETITION_ID)) == 0){
+      IGCParseCompIdRecord(line, data->competition_id, 20);
+    }
+    if (memcmp(line, IGC_META_COMPETITION_CLASS, strlen(IGC_META_COMPETITION_CLASS)) == 0){
+  
+    }
+    /* Check end of Meta */
+    if (*line == 'C'){
+      break;
+    }
+    if (*line == 'B'){
+      break;
+    }
+  }
+  return true;
 }
 
 bool
@@ -106,6 +152,38 @@ IGCParseDateRecord(const char *line, BrokenDate &date)
   date.day = value / 10000;
 
   return date.IsPlausible();
+}
+
+bool
+IGCParseGliderIdRecord(const char *line, char *gliderId, int gliderIdLen)
+{
+/* HFGIDGLIDERID:D-KERF */
+  if (memcmp(line, IGC_META_REGISTRATION, strlen(IGC_META_REGISTRATION)) != 0)
+    return false;
+
+  if(gliderId == NULL){
+    return false;
+  }
+
+  line += strlen(IGC_META_REGISTRATION);
+  strncpy(gliderId,line, gliderIdLen);
+  return true;
+}
+
+bool
+IGCParseCompIdRecord(const char *line, char *gliderId, int gliderIdLen)
+{
+/* HFGIDGLIDERID:D-KERF */
+  if (memcmp(line, IGC_META_COMPETITION_ID, strlen(IGC_META_COMPETITION_ID)) != 0)
+    return false;
+
+  if(gliderId == NULL){
+    return false;
+  }
+
+  line += strlen(IGC_META_COMPETITION_ID);
+  strncpy(gliderId,line, gliderIdLen);
+  return true;
 }
 
 static int

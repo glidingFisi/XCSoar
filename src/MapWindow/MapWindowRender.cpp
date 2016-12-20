@@ -292,7 +292,7 @@ MapWindow::Render(Canvas &canvas, const PixelRect &rc)
 #ifdef HAVE_SKYLINES_TRACKING
   DrawSkyLinesTraffic(canvas);
 #endif
-
+ DrawReplayTraffic(canvas);
   DrawTeammate(canvas);
 
   if (basic.location_available)

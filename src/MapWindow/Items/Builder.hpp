@@ -70,6 +70,7 @@ public:
                    const MoreData &basic, const DerivedInfo &calculated);
 
   void AddWeatherStations(NOAAStore &store);
+  void AddReplayTraffic();
 };
 
 #endif

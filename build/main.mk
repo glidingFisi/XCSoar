@@ -62,7 +62,8 @@ DIALOG_SOURCES = \
 	$(SRC)/Dialogs/FilePicker.cpp \
 	$(SRC)/Dialogs/HelpDialog.cpp \
 	$(SRC)/Dialogs/dlgInfoBoxAccess.cpp \
-	$(SRC)/Dialogs/ReplayDialog.cpp \
+	$(SRC)/Dialogs/MultiReplay/MultiReplayDialog.cpp \
+	$(SRC)/Dialogs/MultiReplay/MultiReplaySettingsDialog.cpp \
 	$(SRC)/Dialogs/dlgSimulatorPrompt.cpp \
 	$(SRC)/Dialogs/SimulatorPromptWindow.cpp \
 	$(SRC)/Dialogs/StartupDialog.cpp \

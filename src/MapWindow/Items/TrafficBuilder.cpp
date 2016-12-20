@@ -29,6 +29,9 @@ Copyright_License {
 #include "Tracking/SkyLines/Data.hpp"
 #include "Tracking/TrackingGlue.hpp"
 #include "Components.hpp"
+#include "Replay/Replay.hpp"
+
+#include "LogFile.hpp"
 
 void
 MapItemListBuilder::AddTraffic(const TrafficList &flarm)
@@ -76,4 +79,26 @@ MapItemListBuilder::AddSkyLinesTraffic()
     }
   }
 #endif
+}
+
+void
+MapItemListBuilder::AddReplayTraffic()
+{
+/* TODO
+  const ScopeLock protect(data.mutex);*/
+LogFormat(_T("AddReplayinesTraffic %i "),(int)replay->GetTrafficCount());
+  /* MulitReplay */
+  for (unsigned int  i=0; i < replay->GetTrafficCount(); i++) {
+    if (list.full())
+      break;
+
+    if (replay->GetTrafficItem(i).IsValid() &&
+        location.DistanceS(replay->GetTrafficItem(i)) /*< range*/) {
+
+LogFormat(_T("AddReplayinesTraffic  %s"), replay->GetNameItem(i));
+      list.append(new SkyLinesTrafficMapItem(i+1, 0,
+                                             replay->GetAltitudeItem(i),
+                                             replay->GetNameItem(i)));
+    }
+  }
 }

@@ -55,37 +55,33 @@ Copyright_License {
 #undef DELETE
 #endif
 
+class MultiReplayItem
+{
+public:
+  AllocatedPath path;
+  StaticString<32> name;
+
+  MultiReplayItem(Path _path)
+    :path(_path) {
+  }
+};
+
+std::vector<MultiReplayItem*> list;
+
 class MultiReplayWidget final
   : public ListWidget, private ActionListener{
 
-  struct MultiListItem {
-    StaticString<32> name;
-    Path path;
-
- /*   MultiListItem(const TCHAR *_name, const Path _path)
-      :name(_name), path(_path) {}*/
-
-    bool operator<(const MultiListItem &i2) const {
-      return StringCollate(name, i2.name) < 0;
-    }
-  };
-  
   enum Buttons {
     ADD,
     DELETE,
     START,
+    SETTINGS
   };
 
   WndForm *form;
-  Button *add_button, *delete_button, *start_button;
+  Button *add_button, *delete_button, *start_button, *settings_button;
   
-  std::vector<MultiListItem> list;
   
-  /**
-   * The list of file names (base names) that are currently being
-   * downloaded.
-   */
-  std::map<std::string, Path> fileList;
 
   TwoTextRowsRenderer row_renderer;
 
@@ -98,7 +94,7 @@ private:
   void AddClicked();
   void DeleteClicked();
   void StartClicked();
-
+  void SettingsClicked();
 public:
   /* virtual methods from class Widget */
   void Prepare(ContainerWindow &parent, const PixelRect &rc) override;
@@ -118,20 +114,8 @@ protected:
 private:
   /* virtual methods from class ActionListener */
   void OnAction(int id) override;
-  std::list<Path> getPathList();
 };
 
-std::list<Path>
-MultiReplayWidget::getPathList()
-{
-  std::list<Path> tempList;
-  for (std::vector<MultiListItem>::iterator it = list.begin(); it != list.end(); ++it) {
-     LogFormat(_T("getPathList  %s"), it->path.c_str() );
-    tempList.emplace_back(it->path);
-  }
-
- return tempList;
-}
 
 void
 MultiReplayWidget::UpdateList()
@@ -159,6 +143,7 @@ MultiReplayWidget::CreateButtons(WidgetDialog &dialog)
   add_button = dialog.AddButton(_("Add"), *this, ADD);
   delete_button = dialog.AddButton(_("Delete"), *this, DELETE);
   start_button = dialog.AddButton(_("Start"), *this, START);
+  settings_button = dialog.AddButton(_("Settings"), *this, SETTINGS);
 }
 
 void
@@ -168,11 +153,7 @@ MultiReplayWidget::Prepare(ContainerWindow &parent, const PixelRect &rc)
   CreateList(parent, look, rc,
              row_renderer.CalculateLayout(*look.list.font_bold,
                                           look.small_font));
-  #if 0
-  for (auto const& ent1 : fileList  ){
-    ShowMessageBox("data.registration", _("Added"), MB_YESNO) ;
-  }
-#endif
+
   UpdateList();
 }
 
@@ -185,17 +166,19 @@ MultiReplayWidget::Unprepare()
 void
 MultiReplayWidget::OnPaintItem(Canvas &canvas, const PixelRect rc, unsigned i)
 {
-  assert(i < list.size());
+  
 
-  row_renderer.DrawFirstRow(canvas, rc, list[i].name);
+  if(i > list.size())
+    assert(i > list.size());
+ 
+  row_renderer.DrawFirstRow(canvas, rc, list[i]->name);
 
-  /*row_renderer.DrawSecondRow(canvas, rc, list[i].path);*/
+  row_renderer.DrawSecondRow(canvas, rc, list[i]->path.c_str());
 }
 
 inline void
 MultiReplayWidget::AddClicked()
 {
-   /* Check for duplicate */
   for(unsigned int i =0; i<list.size();i++){
     /* TODO */
     }
@@ -206,11 +189,13 @@ MultiReplayWidget::AddClicked()
     struct igcMetaData data;
     IGCParseFromFilePath( path,  &data);
 
-    if (fileList.end() == fileList.find(data.registration)){
-      fileList.emplace(data.registration,path);
-      /*ShowMessageBox(data.registration, _("Added"), MB_YESNO) ;*/
-      AddListItem(data.registration,path);
+    /* Todo duplicate */
+    for(unsigned int i =0; i<list.size();i++){
+      if(list[i]->name == data.registration)
+        return; /* duplicate */    
     }
+    
+    AddListItem(data.registration,path);
     
     UpdateList();
 }
@@ -219,16 +204,29 @@ inline void
 MultiReplayWidget::DeleteClicked()
 {
   assert(GetList().GetCursorIndex() < list.size());
-  list.clear();
-  ShowMessageBox("data.registration", _("deleted"), MB_YESNO) ;
+
+  std::vector<MultiReplayItem*>::iterator it = list.begin();
+  for(unsigned int i =0; i<list.size();i++, it++){
+
+    if(GetList().GetCursorIndex() == i)
+      list.erase(it);
+  }
 
   UpdateList();
 }
 
 inline void
+MultiReplayWidget::SettingsClicked()
+{
+  LogFormat("SettingsClicked");
+  dlgMultiReplaySettingsShowModal();
+  replay->SetTimeScale(20);
+}
+
+inline void
 MultiReplayWidget::StartClicked()
 {
-  //unsigned int i;
+  unsigned int i=0;
 
   if(0 == list.size()){
     return;
@@ -237,23 +235,22 @@ MultiReplayWidget::StartClicked()
 
   replay->ClearTraffic();
 
-  replay->AddTrafficPath(getPathList());
-#if 0
-  for(i =0; i<list.size();i++){
+  for(std::vector<MultiReplayItem*>::iterator it = list.begin(); it != list.end(); it++){
+    LogFormat("Set Traffic list");
     if(GetList().GetCursorIndex() == i){
-      /* Selective is master file */
-		  continue;	
-	  }
-
-	  replay->AddTrafficPath(list[i].path);
+       /* Selective is master file */
+	     //continue;	
+    }
+    replay->AddTrafficPath((*it)->path);
+    i++;
   }
-#endif
-  ShowMessageBox(list[GetList().GetCursorIndex()].name, _("Start"), MB_YESNO) ;
+  //replay->SetTimeScale(20);
+  ShowMessageBox(list[GetList().GetCursorIndex()]->name, _("Start"), MB_YESNO) ;
 
   try {
-    replay->Start(list[GetList().GetCursorIndex()].path);
+    replay->Start(list[GetList().GetCursorIndex()]->path);
   } catch (const std::runtime_error &e) {
-    ShowMessageBox(list[GetList().GetCursorIndex()].name, _("Start ERROR"), MB_YESNO) ;
+    ShowMessageBox(list[GetList().GetCursorIndex()]->name, _("Start ERROR"), MB_YESNO) ;
   }
 
 }
@@ -265,7 +262,7 @@ MultiReplayWidget::OnActivateItem(unsigned i)
 
   StaticString<256> tmp;
   tmp.Format(_("Activate IGC \"%s\"?"),
-             list[i].name.c_str());
+             list[i]->name.c_str());
 
   if (ShowMessageBox(tmp, _T(" "), MB_YESNO) == IDYES){
   }
@@ -274,15 +271,15 @@ MultiReplayWidget::OnActivateItem(unsigned i)
 }
 
 void 
-MultiReplayWidget::AddListItem(const TCHAR* name, const Path path) {
-  struct MultiListItem *temp;
-  temp = malloc(100);
-  temp->name = name;
-  temp->path = path;
-  LogFormat(_T("AddListItem  %s"), temp->path.GetExtension() );
-  LogFormat(_T("AddListItem  %s"), temp->path.c_str() );
+MultiReplayWidget::AddListItem(const TCHAR* name, const Path _path) {
+  
+  MultiReplayItem* item = new MultiReplayItem(_path);
+  item->name = name;
 
-  list.push_back(*temp);
+  LogFormat(_T("AddListItem  %s"), item->path.GetExtension() );
+  LogFormat(_T("AddListItem  %s"), item->path.c_str() );
+
+  list.emplace_back(item);
 }
 
 void
@@ -299,6 +296,10 @@ MultiReplayWidget::OnAction(int id)
   
   case START:
     StartClicked();
+    break;
+
+  case SETTINGS:
+    SettingsClicked();
     break;
   }
 }

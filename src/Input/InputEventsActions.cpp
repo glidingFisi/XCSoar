@@ -61,6 +61,7 @@ doc/html/advanced/input/ALL		http://xcsoar.sourceforge.net/advanced/input/
 #include "Dialogs/dlgAnalysis.hpp"
 #include "Dialogs/FileManager.hpp"
 #include "Dialogs/ReplayDialog.hpp"
+#include "Dialogs/MultiReplay/MultiReplayDialog.hpp"
 #include "Message.hpp"
 #include "Markers/Markers.hpp"
 #include "MainWindow.hpp"
@@ -526,7 +527,7 @@ InputEvents::eventSetup(const TCHAR *misc)
     ShowWeatherDialog(_T("rasp"));
   else if (StringIsEqual(misc, _T("Replay"))) {
     if (!CommonInterface::MovementDetected())
-      ShowReplayDialog();
+      ShowMultiReplayDialog();
   } else if (StringIsEqual(misc, _T("Switches")))
     dlgSwitchesShowModal();
   else if (StringIsEqual(misc, _T("Teamcode")))

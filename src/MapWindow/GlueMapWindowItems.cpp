@@ -37,6 +37,8 @@ Copyright_License {
 #include "Interface.hpp"
 #include "Overlay.hpp"
 
+#include "LogFile.hpp"
+
 bool
 GlueMapWindow::ShowMapItems(const GeoPoint &location,
                             bool show_empty_message) const
@@ -92,6 +94,9 @@ GlueMapWindow::ShowMapItems(const GeoPoint &location,
   builder.AddSkyLinesTraffic();
 #endif
 
+/* TODO MultiReplay! */
+   builder.AddReplayTraffic();
+LogFormat(_T("builder.AddReplayinesTraffic  "));
 #ifdef ENABLE_OPENGL
   if (!list.full() && overlay && overlay->IsInside(location))
     list.push_back(new OverlayMapItem(*overlay));

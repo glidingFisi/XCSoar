@@ -63,6 +63,10 @@ namespace SkyLinesTracking {
   struct Data;
 }
 
+namespace DrawReplayTraffic {
+  struct Data;
+}
+
 class MapWindow :
   public DoubleBufferWindow,
   public MapWindowBlackboard
@@ -294,6 +298,8 @@ protected:
 #ifdef HAVE_SKYLINES_TRACKING
   void DrawSkyLinesTraffic(Canvas &canvas) const;
 #endif
+
+  void DrawReplayTraffic(Canvas &canvas) const;
 
   void DrawTeammate(Canvas &canvas) const;
   void DrawContest(Canvas &canvas);

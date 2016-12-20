@@ -26,5 +26,6 @@ Copyright_License {
 
 void
 ShowMultiReplayDialog();
-
+void
+dlgMultiReplaySettingsShowModal();
 #endif

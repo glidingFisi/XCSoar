@@ -31,6 +31,10 @@ Copyright_License {
 #include "FLARM/Friends.hpp"
 #include "Tracking/SkyLines/Data.hpp"
 #include "Util/StringCompare.hxx"
+#include "Replay/Replay.hpp"
+#include "Components.hpp"
+#include "Engine/Waypoint/Waypoints.hpp"
+#include "LogFile.hpp"
 
 /**
  * Draws the FLARM traffic icons onto the given canvas
@@ -151,5 +155,40 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
     }
   }
 }
-
 #endif
+void
+MapWindow::DrawReplayTraffic(Canvas &canvas) const
+{
+
+  canvas.Select(*traffic_look.font);
+  canvas.SetTextColor(COLOR_BLACK);
+
+  TextInBoxMode mode;
+  mode.shape = LabelShape::OUTLINED;
+  for (unsigned int  i=0; i < replay->GetTrafficCount(); i++) {
+    PixelPoint pt;
+    if (render_projection.GeoToScreenIfVisible(replay->GetTrafficItem(i), pt)) {
+      traffic_look.teammate_icon.Draw(canvas, pt);
+    }
+	auto wp = waypoints->GetNearestLandable(replay->GetTrafficItem(i), 20000);
+	StaticString<12> buffer;    
+	if (wp != nullptr) {
+		buffer.Format(_T("%s:%um:%skm"), replay->GetNameItem(i), replay->GetAltitudeItem(i),FormatUserDistanceSmart(wp->location.DistanceS(replay->GetTrafficItem(i))).c_str());
+	}else{
+		buffer.Format(_T("%s:%um"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
+	}
+	
+  	
+    LogFormat(_T("%s - %u"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
+    
+    // Points for the screen coordinates for the icon, name and average climb
+    PixelPoint sc_name;
+
+    // Draw the name 16 points below the icon
+    sc_name = pt;
+    sc_name.y -= Layout::Scale(10);
+
+	TextInBox(canvas, buffer, sc_name.x, sc_name.y,
+                  mode, GetClientRect());
+  }
+}

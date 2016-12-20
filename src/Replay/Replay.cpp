@@ -21,7 +21,7 @@
 }
 */
 
-#include "Replay.hpp"
+
 #include "IgcReplay.hpp"
 #include "NmeaReplay.hpp"
 #include "DemoReplayGlue.hpp"
@@ -32,8 +32,14 @@
 #include "Interface.hpp"
 #include "CatmullRomInterpolator.hpp"
 #include "Util/Clamp.hpp"
-
 #include <stdexcept>
+
+#include "Replay.hpp"
+
+#include "LogFile.hpp"
+#include "IGC/IGCParser.hpp" 
+
+#include "CalculationThread.hpp"
 
 #include <assert.h>
 
@@ -68,6 +74,27 @@ Replay::Start(Path _path)
 
   path = _path;
 
+
+/* Load Traffic */
+  LogFormat("Replay Load traffic (%ld items)", itemList.size());
+  for(std::vector<ReplayItem*>::iterator it = itemList.begin(); it != itemList.end(); it++){
+    LogFormat("Replay Load traffic");
+    if ((*it)->path.IsNull() || (*it)->path.IsEmpty()) {
+      LogFormat("Replay start: Empty string %ld ",itemList.size());
+    } else if ((*it)->path.MatchesExtension(_T(".igc"))) {
+      LogFormat("Replay start: create replay");
+      (*it)->replay = new IgcReplay(std::make_unique<FileLineReaderA>((*it)->path));
+
+      struct igcMetaData data;
+      IGCParseFromFilePath((*it)->path,&data);
+
+      LogFormat(_T("Replay  %s %d"), data.competition_id,(int)strlen(data.competition_id) );
+      (*it)->name = data.competition_id;
+    }
+  }
+  /* End Load Traffic */
+
+
   if (path.IsNull() || path.IsEmpty()) {
     replay = new DemoReplayGlue(task_manager);
   } else if (path.MatchesExtension(_T(".igc"))) {
@@ -88,6 +115,21 @@ Replay::Start(Path _path)
   next_data.Reset();
 
   Timer::Schedule(100);
+}
+
+bool 
+Replay::AddTrafficPath(Path _path){
+  LogFormat("Replay AddTrafficPath %s", _path.c_str());
+
+  ReplayItem* item = new ReplayItem(_path);
+  itemList.push_back(item);
+  
+  return true;
+}
+
+void 
+Replay::ClearTraffic(){
+  list.clear();
 }
 
 bool
@@ -171,7 +213,23 @@ Replay::Update()
         Stop();
         return false;
       }
-
+     //LogFormat("Get next_data");
+      
+      /* MultiReplay */
+      for(std::vector<ReplayItem*>::iterator it = itemList.begin(); it != itemList.end(); it++){
+       // LogFormat("Get next traffic item");
+int i =0;
+        while((*it)->next_data.time < next_data.time){
+          if(!(*it)->replay->Update((*it)->next_data)){
+            LogFormat("replay update");
+            break;
+          }
+          //LogFormat("Get next data2 %i",i);
+i++;
+        }
+      }
+      /* MultiReplay End */
+      
       assert(!next_data.gps.real);
 
       if (next_data.time_available)

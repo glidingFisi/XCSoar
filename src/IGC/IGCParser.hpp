@@ -24,6 +24,9 @@ Copyright_License {
 #ifndef XCSOAR_IGC_PARSER_HPP
 #define XCSOAR_IGC_PARSER_HPP
 
+#include "Time/BrokenDate.hpp"
+#include "OS/Path.hpp"
+
 struct IGCFix;
 struct IGCHeader;
 struct IGCExtensions;
@@ -32,6 +35,22 @@ struct IGCDeclarationTurnpoint;
 struct BrokenDate;
 struct BrokenTime;
 struct GeoPoint;
+
+struct igcMetaData{
+  BrokenDate date;
+  char PILOT[20];
+  char GLIDER[20];
+  char registration[20];
+  char competition_id[20];
+  char CLASS[20];
+};
+
+/**
+ * Parse an IGC File Meta data from a file path.
+ *
+ * @return true on success, false if the line was not recognized
+ */
+bool IGCParseFromFilePath(Path path, struct igcMetaData *data );
 
 /**
  * Parse an IGC "A" record.
@@ -48,6 +67,21 @@ IGCParseHeader(const char *line, IGCHeader &header);
  */
 bool
 IGCParseDateRecord(const char *line, BrokenDate &date);
+
+/**
+ * Parse an IGC "IGC_META_REGISTRATION" record.
+ *
+ * @return true on success, false if the line was not recognized
+ */
+bool
+IGCParseGliderIdRecord(const char *line, char *gliderId, int gliderIdLen);
+
+/**
+ * Parse an IGC "HFCIDCOMPETITIONID" record.
+ *
+ * @return true on success, false if the line was not recognized
+ */
+bool IGCParseCompIdRecord(const char *line, char *competition_id, int len);
 
 /**
  * Parse an IGC "I" record.
