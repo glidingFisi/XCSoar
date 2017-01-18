@@ -35,6 +35,8 @@ Copyright_License {
 #include "Components.hpp"
 #include "Engine/Waypoint/Waypoints.hpp"
 #include "LogFile.hpp"
+#include "NMEA/Info.hpp"
+#include <list>
 
 /**
  * Draws the FLARM traffic icons onto the given canvas
@@ -156,6 +158,29 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
   }
 }
 #endif
+
+static void DrawTrafficTrail(Canvas &canvas, const Projection &projection,
+                               std::vector<NMEAInfo> itemList )
+{
+  unsigned n = 0;
+  AllocatedArray<BulkPixelPoint> points;
+  points.GrowDiscard(itemList.size());
+  auto *p = points.begin();
+//LogFormat(_T("%s - %l"), "TRAIL itemlist count",itemList.size());
+  for(std::vector<NMEAInfo>::iterator it = itemList.begin(); it != itemList.end(); it++){
+      projection.GeoToScreen((*it).location); 
+      try{
+        *p++ = projection.GeoToScreen((*it).location);
+      }catch (int e){
+        LogFormat(_T("%s - %u - %u"), "TRAIL ERROR COUNT ",n,e);
+      }
+    
+    n++;
+  }
+LogFormat(_T("%s - %u"), "TRAIL COUNT",n);
+  canvas.DrawPolyline(points.begin(), n);
+}
+
 void
 MapWindow::DrawReplayTraffic(Canvas &canvas) const
 {
@@ -170,25 +195,26 @@ MapWindow::DrawReplayTraffic(Canvas &canvas) const
     if (render_projection.GeoToScreenIfVisible(replay->GetTrafficItem(i), pt)) {
       traffic_look.teammate_icon.Draw(canvas, pt);
     }
-	auto wp = waypoints->GetNearestLandable(replay->GetTrafficItem(i), 20000);
-	StaticString<12> buffer;    
-	if (wp != nullptr) {
-		buffer.Format(_T("%s:%um:%skm"), replay->GetNameItem(i), replay->GetAltitudeItem(i),FormatUserDistanceSmart(wp->location.DistanceS(replay->GetTrafficItem(i))).c_str());
-	}else{
-		buffer.Format(_T("%s:%um"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
-	}
-	
-  	
-    LogFormat(_T("%s - %u"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
+    DrawTrafficTrail(canvas, render_projection,replay->GetTrafficItemTrace(i));
+    auto wp = waypoints->GetNearestLandable(replay->GetTrafficItem(i), 20000);
+    StaticString<12> buffer;    
+    if (wp != nullptr) {
+      buffer.Format(_T("%s:%um:%skm"), replay->GetNameItem(i), replay->GetAltitudeItem(i),FormatUserDistanceSmart(wp->location.DistanceS(replay->GetTrafficItem(i))).c_str());
+    }else{
+      buffer.Format(_T("%s:%um"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
+    }
     
-    // Points for the screen coordinates for the icon, name and average climb
-    PixelPoint sc_name;
+      
+      LogFormat(_T("%s - %u"), replay->GetNameItem(i), replay->GetAltitudeItem(i));
+      
+      // Points for the screen coordinates for the icon, name and average climb
+      PixelPoint sc_name;
 
-    // Draw the name 16 points below the icon
-    sc_name = pt;
-    sc_name.y -= Layout::Scale(10);
+      // Draw the name 16 points below the icon
+      sc_name = pt;
+      sc_name.y -= Layout::Scale(10);
 
-	TextInBox(canvas, buffer, sc_name.x, sc_name.y,
-                  mode, GetClientRect());
+    TextInBox(canvas, buffer, sc_name.x, sc_name.y,
+                    mode, GetClientRect());
   }
 }

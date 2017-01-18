@@ -219,7 +219,7 @@ inline void
 MultiReplayWidget::SettingsClicked()
 {
   LogFormat("SettingsClicked");
-  dlgMultiReplaySettingsShowModal();
+ // dlgMultiReplaySettingsShowModal();
   replay->SetTimeScale(20);
 }
 

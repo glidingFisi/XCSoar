@@ -43,7 +43,8 @@ public:
   AbstractReplay *replay;
   NMEAInfo next_data;
   StaticString<32> name;
-
+  std::vector<NMEAInfo> nmea_trace;
+  
   ReplayItem(Path _path)
     :path(_path), replay(nullptr) {
   }
@@ -68,7 +69,7 @@ class Replay final
     AbstractReplay *replay;
     NMEAInfo next_data;
     char name[20];
-
+    
    /* ListItem(const Path _path)
       : path(_path) {}*/
   };
@@ -136,6 +137,9 @@ public:
   }
   GeoPoint GetTrafficItem(unsigned int item){
     return itemList[item]->next_data.location;
+  }
+  std::vector<NMEAInfo> GetTrafficItemTrace(unsigned int item){
+    return itemList[item]->nmea_trace;
   }
   int GetAltitudeItem(unsigned int item){
     return itemList[item]->next_data.gps_altitude;

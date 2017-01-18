@@ -218,14 +218,15 @@ Replay::Update()
       /* MultiReplay */
       for(std::vector<ReplayItem*>::iterator it = itemList.begin(); it != itemList.end(); it++){
        // LogFormat("Get next traffic item");
-int i =0;
+        //int i =0;
         while((*it)->next_data.time < next_data.time){
           if(!(*it)->replay->Update((*it)->next_data)){
             LogFormat("replay update");
             break;
           }
           //LogFormat("Get next data2 %i",i);
-i++;
+          //i++;
+          (*it)->nmea_trace.emplace_back((*it)->next_data);
         }
       }
       /* MultiReplay End */
